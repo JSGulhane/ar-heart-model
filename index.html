@@ -1,8 +1,238 @@
-<!-- index.html -->
+//code line: https://glitch.com/edit/#!/smooth-juvenile-tourmaline?path=index.html%3A156%3A0
+//live project link: https://smooth-juvenile-tourmaline.glitch.me/
+//3d models hosted link: https://ar-heart-lungs-model.vercel.app/
+//github link: https://github.com/JSGulhane/ar-heart-model
 <!DOCTYPE html>
 <html>
-  <head><title>Test</title></head>
+  <head>
+    <title>AR Heart, Lungs, Brain Model</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- A-Frame and AR.js -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      .ar-instructions {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        font-family: Arial, sans-serif;
+        z-index: 100;
+      }
+      .slider-controls {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        z-index: 100;
+      }
+      .slider-controls input[type="range"] {
+        writing-mode: bt-lr;
+        -webkit-appearance: slider-vertical;
+        width: 30px;
+        height: 150px;
+      }
+      .horizontal-slider {
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        z-index: 100;
+      }
+      input[type="range"] {
+        accent-color: #ff4d4d;
+      }
+      .btn-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 100;
+      }
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+        border: none;
+        border-radius: 4px;
+        background-color: #ff4d4d;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #e03e3e;
+      }
+    </style>
+  </head>
   <body>
-    <h1>Heart Model Hosted</h1>
+    <a-scene embedded arjs>
+      <a-marker preset="hiro">
+
+        <!-- Heart -->
+        <a-entity id="heart-wrapper" rotation="0 0 0" position="0 0.05 0" visible="true">
+          <a-entity
+            id="heart"
+            gltf-model="https://ar-heart-lungs-model.vercel.app/heart.glb"
+            scale="0.010 0.010 0.010"
+          ></a-entity>
+        </a-entity>
+
+        <!-- Lungs -->
+        <a-entity id="lungs-wrapper" rotation="0 0 0" position="0 0 0" visible="false">
+          <a-entity
+            id="lungs"
+            gltf-model="https://ar-heart-lungs-model.vercel.app/realistic_human_lungs.glb"
+            scale="7 7 7"
+          ></a-entity>
+        </a-entity>
+
+        <!-- Brain -->
+        <a-entity id="brain-wrapper" rotation="0 0 0" position="0 0.05 0" visible="false">
+          <a-entity
+            id="brain"
+            gltf-model="https://ar-heart-lungs-model.vercel.app/human_brain.glb"
+            scale="2 2 2"
+          ></a-entity>
+        </a-entity>
+
+        <!-- Kidney -->
+        <a-entity id="kidney-wrapper" rotation="0 0 0" position="0 0.05 0" visible="false">
+          <a-entity
+            id="kidney"
+            gltf-model="https://ar-heart-lungs-model.vercel.app/kidney.glb"
+            scale="1 1 1"
+          ></a-entity>
+        </a-entity>
+
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Sliders -->
+    <div class="slider-controls">
+      <input
+        type="range"
+        id="x-slider"
+        min="-90"
+        max="90"
+        value="0"
+        oninput="handleSliderChange()"
+      />
+    </div>
+
+    <div class="horizontal-slider">
+      <input
+        type="range"
+        id="y-slider"
+        min="0"
+        max="360"
+        value="0"
+        oninput="handleSliderChange()"
+      />
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-controls">
+      <button onclick="showModel('heart')">❤️ Heart</button>
+      <button onclick="showModel('lungs')">🫁 Lungs</button>
+      <button onclick="showModel('brain')">🧠 Brain</button>
+      <button onclick="showModel('kidney')">🩺 Kidney</button>
+      <button onclick="pauseRotation()">⏸ Pause</button>
+      <button onclick="resumeRotation()">▶️ Resume</button>
+    </div>
+
+    <div class="ar-instructions">
+      📷 Point your camera at the Hiro marker to see the 3D model.<br />
+      Use the sliders and buttons to explore the model.
+    </div>
+
+    <script>
+      const xSlider = document.getElementById("x-slider");
+      const ySlider = document.getElementById("y-slider");
+
+      const heartWrapper = document.querySelector("#heart-wrapper");
+      const lungsWrapper = document.querySelector("#lungs-wrapper");
+      const brainWrapper = document.querySelector("#brain-wrapper");
+      const kidneyWrapper = document.querySelector("#kidney-wrapper");
+
+      const heart = document.querySelector("#heart");
+      const lungs = document.querySelector("#lungs");
+      const brain = document.querySelector("#brain");
+      const kidney = document.querySelector("#kidney");
+
+      let currentModel = "heart";
+      let isRotating = true;
+      let xRotation = parseInt(xSlider.value);
+      let yManualRotation = parseInt(ySlider.value);
+      let autoYRotation = 0;
+
+      function handleSliderChange() {
+        xRotation = parseInt(xSlider.value);
+        yManualRotation = parseInt(ySlider.value);
+        if (currentModel === "heart") {
+          heartWrapper.setAttribute("rotation", `${xRotation} ${yManualRotation} 0`);
+        } else if (currentModel === "lungs") {
+          lungsWrapper.setAttribute("rotation", `${xRotation} ${yManualRotation} 0`);
+        } else if (currentModel === "brain") {
+          brainWrapper.setAttribute("rotation", `${xRotation} ${yManualRotation} 0`);
+        } else {
+          kidneyWrapper.setAttribute("rotation", `${xRotation} ${yManualRotation} 0`);
+        }
+      }
+
+      function pauseRotation() {
+        isRotating = false;
+      }
+
+      function resumeRotation() {
+        isRotating = true;
+      }
+
+      function showModel(model) {
+        currentModel = model;
+        autoYRotation = 0;
+
+        heartWrapper.setAttribute("visible", model === "heart");
+        lungsWrapper.setAttribute("visible", model === "lungs");
+        brainWrapper.setAttribute("visible", model === "brain");
+        kidneyWrapper.setAttribute("visible", model === "kidney");
+
+        xSlider.value = 0;
+        ySlider.value = 0;
+        handleSliderChange();
+      }
+
+      setInterval(() => {
+        if (isRotating) {
+          autoYRotation = (autoYRotation + 3) % 360;
+          if (currentModel === "heart") {
+            heart.setAttribute("rotation", `0 ${autoYRotation} 0`);
+          } else if (currentModel === "lungs") {
+            lungs.setAttribute("rotation", `0 ${autoYRotation} 0`);
+          } else if (currentModel === "brain") {
+            brain.setAttribute("rotation", `0 ${autoYRotation} 0`);
+          } else {
+            kidney.setAttribute("rotation", `0 ${autoYRotation} 0`);
+          }
+        }
+      }, 50);
+    </script>
   </body>
 </html>
